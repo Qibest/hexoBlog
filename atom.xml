@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Kelly&#39;s Blog</title>
+  
+  <link href="/atom.xml" rel="self"/>
+  
+  <link href="http://yoursite.com/"/>
+  <updated>2016-07-08T10:47:48.323Z</updated>
+  <id>http://yoursite.com/</id>
+  
+  <author>
+    <name>赵琪</name>
+    
+  </author>
+  
+  <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Thread死锁问题</title>
+    <link href="http://yoursite.com/2016/07/08/Thread%E6%AD%BB%E9%94%81%E9%97%AE%E9%A2%98/"/>
+    <id>http://yoursite.com/2016/07/08/Thread死锁问题/</id>
+    <published>2016-07-08T10:43:33.454Z</published>
+    <updated>2016-07-08T10:47:48.323Z</updated>
+    
+    <content type="html">&lt;p&gt;##线程死锁&lt;br&gt;当线程发生死锁的情况时，用eclipse很难找出真正的原因所在。需要借住jdk自带的“java VisualVM”，这个小程序在jdk的bin目录下面。&lt;br&gt;找到对应的线程。如发现有长时间“Monitor”状态的就证明有“死锁的情况”。需要分析CPU 和 Thread Dump 找到死锁的原因。&lt;/p&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;##线程死锁&lt;br&gt;当线程发生死锁的情况时，用eclipse很难找出真正的原因所在。需要借住jdk自带的“java VisualVM”，这个小程序在jdk的bin目录下面。&lt;br&gt;找到对应的线程。如发现有长时间“Monitor”状态的就证明有“死锁的情况”。需要分析CPU 
+    
+    </summary>
+    
+      <category term="Java" scheme="http://yoursite.com/categories/Java/"/>
+    
+    
+      <category term="Java-Thread" scheme="http://yoursite.com/tags/Java-Thread/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Thread And Timer</title>
+    <link href="http://yoursite.com/2016/07/08/Thread%20And%20Timer/"/>
+    <id>http://yoursite.com/2016/07/08/Thread And Timer/</id>
+    <published>2016-07-08T10:43:33.442Z</published>
+    <updated>2016-07-08T10:47:35.767Z</updated>
+    
+    <content type="html">&lt;p&gt;##线程池&lt;br&gt;&lt;strong&gt;ThreadPoolExecutor&lt;/strong&gt;&lt;br&gt;这个类是最基层的线程池类。Executors创建的线程池底层都是用这个实现的。ThreadPoolExecutor的构造方法如下：  &lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public ThreadPoolExecutor(int corePoolSize,    
+                          int maximumPoolSize,  
+                          long keepAliveTime,  
+                          TimeUnit unit,  
+                          BlockingQueue&amp;lt;Runnable&amp;gt; workQueue,  
+                          ThreadFactory threadFactory,  
+                          RejectedExecutionHandler handler) {  
+    if (corePoolSize &amp;lt; 0 ||
+        maximumPoolSize &amp;lt;= 0 ||
+        maximumPoolSize &amp;lt; corePoolSize ||  
+        keepAliveTime &amp;lt; 0)  
+        throw new IllegalArgumentException();  
+    if (workQueue == null || threadFactory == null || handler == null)  
+        throw new NullPointerException();  
+    this.corePoolSize = corePoolSize;  
+    this.maximumPoolSize = maximumPoolSize;  
+    this.workQueue = workQueue;  
+    this.keepAliveTime = unit.toNanos(keepAliveTime);  
+    this.threadFactory = threadFactory;  
+    this.handler = handler;  
+}  
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;corePoolSize： 线程池维护线程的最少数量&lt;br&gt;maximumPoolSize：线程池维护线程的最大数量&lt;br&gt;keepAliveTime： 线程池维护线程所允许的空闲时间&lt;br&gt;unit： 线程池维护线程所允许的空闲时间的单位&lt;br&gt;workQueue： 线程池所使用的缓冲队列&lt;br&gt;handler： 线程池对拒绝任务的处理策略  &lt;/p&gt;
+&lt;p&gt;任务不断添加导致如下的参数按照先后顺序实际size不断增加：&lt;br&gt;    corePoolSize –&amp;gt; workQueue –&amp;gt; maximumPoolSize –&amp;gt; handler处理新添加的线程&lt;br&gt;具体描述：&lt;br&gt;当一个任务通过execute(Runnable)方法欲添加到线程池时：  &lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;如果此时线程池中的数量小于corePoolSize，即使线程池中的线程都处于空闲状态，也要创建新的线程来处理被添加的任务。  &lt;/li&gt;
+&lt;li&gt;如果此时线程池中的数量等于 corePoolSize，但是缓冲队列 workQueue未满，那么任务被放入缓冲队列。&lt;/li&gt;
+&lt;li&gt;如果此时线程池中的数量大于corePoolSize，缓冲队列workQueue满，并且线程池中的数量小于maximumPoolSize，建新的线程来处理被添加的任务。  &lt;/li&gt;
+&lt;li&gt;如果此时线程池中的数量大于corePoolSize，缓冲队列workQueue满，并且线程池中的数量等于maximumPoolSize，那么通过 handler所指定的策略来处理此任务。  &lt;/li&gt;
+&lt;li&gt;&lt;p&gt;JDK默认的 handler 为new AbortPolicy()，直接throw 一个异常，内部实现如下:  &lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public static class AbortPolicy implements RejectedExecutionHandler {
+/**
+ * Creates an &amp;lt;tt&amp;gt;AbortPolicy&amp;lt;/tt&amp;gt;.
+ */
+public AbortPolicy() { }
+
+/**
+ * Always throws RejectedExecutionException.
+ * @param r the runnable task requested to be executed
+ * @param e the executor attempting to execute this task
+ * @throws RejectedExecutionException always.
+ */
+public void rejectedExecution(Runnable r, ThreadPoolExecutor e) {
+throw new RejectedExecutionException();
+}
+}  
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Executors&lt;/strong&gt;&lt;br&gt;封装好的线程池工具。&lt;br&gt;Executors.newCachedThreadPool()（无界线程池，可以进行自动线程回收）&lt;/p&gt;
+&lt;p&gt;Executors.newFixedThreadPool(int)（固定大小线程池）&lt;/p&gt;
+&lt;p&gt;Executors.newSingleThreadExecutor()（单个后台线程）&lt;/p&gt;
+&lt;p&gt;Executors.newScheduledThreadPool(int corePoolSize) （可以指定延迟后执行线程任务，看源码workQueue是自动扩容的，maximumPoolSize是Integer.MAX_VALUE。） &lt;/p&gt;
+&lt;p&gt;##定时器&lt;br&gt;&lt;strong&gt;Timer&lt;/strong&gt;&lt;br&gt;单线程执行任务。如果任务中存在未捕捉的异常。这整个timer全部挂掉。后面的任务不会执行。&lt;br&gt;Timer 拥有 TaskQueue 和 TimerThread 两个属性。TaskQueue 队列存放添加的所有任务。TimerThread用来执行任务。但是主要执行代码如下：  &lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;  private void mainLoop() {
+        while (true) {
+            try {
+                TimerTask task;
+                boolean taskFired;
+                synchronized(queue) {
+                    // Wait for queue to become non-empty
+                    while (queue.isEmpty() &amp;amp;&amp;amp; newTasksMayBeScheduled)
+                        queue.wait();
+                    if (queue.isEmpty())
+                        break; // Queue is empty and will forever remain; die
+
+                    // Queue nonempty; look at first evt and do the right thing
+                    long currentTime, executionTime;
+                    task = queue.getMin();
+                    synchronized(task.lock) {
+                        if (task.state == TimerTask.CANCELLED) {
+                            queue.removeMin();
+                            continue;  // No action required, poll queue again
+                        }
+                        currentTime = System.currentTimeMillis();
+                        executionTime = task.nextExecutionTime;
+                        if (taskFired = (executionTime&amp;lt;=currentTime)) {
+                            if (task.period == 0) { // Non-repeating, remove
+                                queue.removeMin();
+                                task.state = TimerTask.EXECUTED;
+                            } else { // Repeating task, reschedule
+                                queue.rescheduleMin(
+                                  task.period&amp;lt;0 ? currentTime   - task.period
+                                                : executionTime + task.period);
+                            }
+                        }
+                    }
+                    if (!taskFired) // Task hasn&amp;apos;t yet fired; wait
+                        queue.wait(executionTime - currentTime);
+                }
+                if (taskFired)  // Task fired; run it, holding no locks
+                    task.run(); //这里是关键。调用的是run(),而不是start();
+            } catch(InterruptedException e) {
+            }
+        }
+    }
+}   
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;task.run()证明是一个单线程在干这件事。  &lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;ScheduledExecutorService&lt;/strong&gt;&lt;br&gt;是一个线程池。具有周期性调用的功能。是由&lt;br&gt;Executors.newScheduledThreadPool(int corePoolSize)创建出来的。&lt;/p&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;##线程池&lt;br&gt;&lt;strong&gt;ThreadPoolExecutor&lt;/strong&gt;&lt;br&gt;这个类是最基层的线程池类。Executors创建的线程池底层都是用这个实现的。ThreadPoolExecutor的构造方法如下：  &lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public
+    
+    </summary>
+    
+      <category term="Java" scheme="http://yoursite.com/categories/Java/"/>
+    
+    
+      <category term="Java-Thread" scheme="http://yoursite.com/tags/Java-Thread/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>java汉字数字字母排序</title>
+    <link href="http://yoursite.com/2016/07/08/java%E6%B1%89%E5%AD%97%E6%95%B0%E5%AD%97%E5%AD%97%E6%AF%8D%E6%8E%92%E5%BA%8F/"/>
+    <id>http://yoursite.com/2016/07/08/java汉字数字字母排序/</id>
+    <published>2016-07-08T10:43:33.375Z</published>
+    <updated>2016-07-08T10:47:18.831Z</updated>
+    
+    <content type="html">&lt;p&gt;##汉字字母数字排序&lt;/p&gt;
+&lt;p&gt;###Collator&lt;br&gt;Collator 用来简化我们处理各种语言之间的差别性。Collator 主要处理:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;规范化的典型等效 字符&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;多层次的比较&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;RuleBasedCollator collator = (RuleBasedCollator)Collator.getInstance(Locale.CHINA);
+Collections.sort(group.members,new Comparator&amp;lt;UserInfo&amp;gt;(){
+                    @Override
+                    public int compare(UserInfo o1, UserInfo o2) {
+                        return collator.compare(o1.userName, o2.userName);
+                    }
+                });
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;如上例子对group.members里的成员按照名字进行了排序。&lt;/p&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;##汉字字母数字排序&lt;/p&gt;
+&lt;p&gt;###Collator&lt;br&gt;Collator 用来简化我们处理各种语言之间的差别性。Collator 主要处理:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;规范化的典型等效 字符&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;多层次的比较&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;Ru
+    
+    </summary>
+    
+      <category term="Java" scheme="http://yoursite.com/categories/Java/"/>
+    
+    
+      <category term="Java-SE" scheme="http://yoursite.com/tags/Java-SE/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Hello World</title>
+    <link href="http://yoursite.com/2016/07/08/hello-world/"/>
+    <id>http://yoursite.com/2016/07/08/hello-world/</id>
+    <published>2016-07-08T07:40:26.114Z</published>
+    <updated>2016-07-08T07:40:26.121Z</updated>
+    
+    <content type="html">&lt;p&gt;Welcome to &lt;a href=&quot;https://hexo.io/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Hexo&lt;/a&gt;! This is your very first post. Check &lt;a href=&quot;https://hexo.io/docs/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;documentation&lt;/a&gt; for more info. If you get any problems when using Hexo, you can find the answer in &lt;a href=&quot;https://hexo.io/docs/troubleshooting.html&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;troubleshooting&lt;/a&gt; or you can ask me on &lt;a href=&quot;https://github.com/hexojs/hexo/issues&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;GitHub&lt;/a&gt;.&lt;/p&gt;
+&lt;h2 id=&quot;Quick-Start&quot;&gt;&lt;a href=&quot;#Quick-Start&quot; class=&quot;headerlink&quot; title=&quot;Quick Start&quot;&gt;&lt;/a&gt;Quick Start&lt;/h2&gt;&lt;h3 id=&quot;Create-a-new-post&quot;&gt;&lt;a href=&quot;#Create-a-new-post&quot; class=&quot;headerlink&quot; title=&quot;Create a new post&quot;&gt;&lt;/a&gt;Create a new post&lt;/h3&gt;&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;div class=&quot;line&quot;&gt;1&lt;/div&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;div class=&quot;line&quot;&gt;$ hexo new &lt;span class=&quot;string&quot;&gt;&quot;My New Post&quot;&lt;/span&gt;&lt;/div&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;More info: &lt;a href=&quot;https://hexo.io/docs/writing.html&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Writing&lt;/a&gt;&lt;/p&gt;
+&lt;h3 id=&quot;Run-server&quot;&gt;&lt;a href=&quot;#Run-server&quot; class=&quot;headerlink&quot; title=&quot;Run server&quot;&gt;&lt;/a&gt;Run server&lt;/h3&gt;&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;div class=&quot;line&quot;&gt;1&lt;/div&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;div class=&quot;line&quot;&gt;$ hexo server&lt;/div&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;More info: &lt;a href=&quot;https://hexo.io/docs/server.html&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Server&lt;/a&gt;&lt;/p&gt;
+&lt;h3 id=&quot;Generate-static-files&quot;&gt;&lt;a href=&quot;#Generate-static-files&quot; class=&quot;headerlink&quot; title=&quot;Generate static files&quot;&gt;&lt;/a&gt;Generate static files&lt;/h3&gt;&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;div class=&quot;line&quot;&gt;1&lt;/div&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;div class=&quot;line&quot;&gt;$ hexo generate&lt;/div&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;More info: &lt;a href=&quot;https://hexo.io/docs/generating.html&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Generating&lt;/a&gt;&lt;/p&gt;
+&lt;h3 id=&quot;Deploy-to-remote-sites&quot;&gt;&lt;a href=&quot;#Deploy-to-remote-sites&quot; class=&quot;headerlink&quot; title=&quot;Deploy to remote sites&quot;&gt;&lt;/a&gt;Deploy to remote sites&lt;/h3&gt;&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;div class=&quot;line&quot;&gt;1&lt;/div&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;div class=&quot;line&quot;&gt;$ hexo deploy&lt;/div&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;More info: &lt;a href=&quot;https://hexo.io/docs/deployment.html&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Deployment&lt;/a&gt;&lt;/p&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;Welcome to &lt;a href=&quot;https://hexo.io/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Hexo&lt;/a&gt;! This is your very first post. Check &lt;a href=&quot;https://hexo.
+    
+    </summary>
+    
+    
+  </entry>
+  
+</feed>
