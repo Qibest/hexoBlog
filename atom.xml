@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
   <title>Kelly&#39;s Blog</title>
   
-  <link href="/atom.xml" rel="self"/>
+  <link href="/hexoBlog/atom.xml" rel="self"/>
   
   <link href="https://qibest.github.io/hexoBlog/"/>
   <updated>2016-07-08T10:47:48.323Z</updated>
